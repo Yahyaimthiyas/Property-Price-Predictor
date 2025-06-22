@@ -1,0 +1,16 @@
+feature,importance
+Sqft,0.3000643
+City_Tirunelveli,0.105152726
+City_Tiruppur,0.08461578
+City_Thoothukudi,0.084074765
+City_Salem,0.07323607
+City_Vellore,0.07184348
+City_Erode,0.07176324
+City_Trichy,0.060793914
+City_Madurai,0.053472675
+City_Coimbatore,0.04922658
+Distance to City Center (km),0.02924468
+Property Age,0.009976231
+Nearby School (Y/N),0.003176287
+Hospital Nearby (Y/N),0.0018043024
+Bedroom,0.0015549805

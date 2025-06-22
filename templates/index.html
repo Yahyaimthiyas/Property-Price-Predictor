@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Price Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Property Price Predictor</h1>
+            <nav>
+                <a href="#predict">Predict</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#insights">Insights</a>
+                <a href="#compare">Compare</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h2>Discover Your Property’s Value</h2>
+                <p>Get AI-powered property price predictions for Tamil Nadu with a modern, intuitive experience.</p>
+                <a href="#predict" class="btn btn-primary">Start Predicting</a>
+            </div>
+        </section>
+
+        <section id="predict" class="container">
+            <div class="card">
+                <h3>Predict Property Price</h3>
+                <form id="predictForm">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="city">City</label>
+                            <select name="city" id="city" required>
+                                <option value="">Select a city</option>
+                                {% for city in cities %}
+                                    <option value="{{ city }}">{{ city }}</option>
+                                {% endfor %}
+                            </select>
+                            <span class="tooltip">Select the city where the property is located.</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bedroom">Bedrooms</label>
+                            <select name="bedroom" id="bedroom" required>
+                                <option value="">Select bedrooms</option>
+                                {% for i in range(1, 6) %}
+                                    <option value="{{ i }}">{{ i }}</option>
+                                {% endfor %}
+                            </select>
+                            <span class="tooltip">Number of bedrooms in the property.</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="sqft">Square Footage (Sqft)</label>
+                            <input type="number" name="sqft" id="sqft" min="100" max="10000" required>
+                            <span class="tooltip">Total area in square feet (100–10,000).</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="year_built">Year Built</label>
+                            <input type="number" name="year_built" id="year_built" min="1900" max="2025" required>
+                            <span class="tooltip">The year the property was constructed (1900–2025).</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="distance">Distance to City Center (km)</label>
+                            <input type="number" name="distance" id="distance" min="0" max="50" step="0.1" required>
+                            <span class="tooltip">Distance to city center in kilometers (0–50).</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="school">Nearby School</label>
+                            <select name="school" id="school" required>
+                                <option value="">Select option</option>
+                                <option value="Y">Yes</option>
+                                <option value="N">No</option>
+                            </select>
+                            <span class="tooltip">Is there a school nearby?</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="hospital">Hospital Nearby</label>
+                            <select name="hospital" id="hospital" required>
+                                <option value="">Select option</option>
+                                <option value="Y">Yes</option>
+                                <option value="N">No</option>
+                            </select>
+                            <span class="tooltip">Is there a hospital nearby?</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Predict Price</button>
+                </form>
+                <div id="prediction-result"></div>
+            </div>
+        </section>
+
+        <section id="how-it-works" class="container">
+            <div class="card">
+                <h3>How It Works</h3>
+                <p>Our model analyzes key factors like location, square footage, and amenities to predict property prices. Below are the most influential features:</p>
+                <ul class="feature-list">
+                    {% for feature in feature_importance[:5] %}
+                        <li>{{ feature.feature }}: {{ (feature.importance * 100)|round(2) }}% influence</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </section>
+
+        <section id="insights" class="container">
+            <div class="card">
+                <h3>Price Trends & Insights</h3>
+                <div class="chart-grid">
+                    <div class="chart-container">
+                        <h4>Average Price by City</h4>
+                        <canvas id="avgPriceChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h4>Price vs. Square Footage</h4>
+                        <canvas id="priceVsSqftChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h4>Price vs. Property Age</h4>
+                        <canvas id="priceVsAgeChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h4>Price Distribution by City</h4>
+                        <select id="citySelect">
+                            {% for city in cities %}
+                                <option value="{{ city }}">{{ city }}</option>
+                            {% endfor %}
+                        </select>
+                        <canvas id="priceDistChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h4>Price vs. Sqft vs. Age</h4>
+                        <canvas id="scatter3DChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h4>Price Heatmap by City</h4>
+                        <canvas id="heatmapChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="compare" class="container">
+            <div class="card">
+                <h3>Compare Properties</h3>
+                <form id="compareForm">
+                    <div class="grid-2">
+                        <div>
+                            <h4>Property 1</h4>
+                            <div class="form-group">
+                                <label for="city1">City</label>
+                                <select name="city1" id="city1" required>
+                                    <option value="">Select a city</option>
+                                    {% for city in cities %}
+                                        <option value="{{ city }}">{{ city }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="bedroom1">Bedrooms</label>
+                                <select name="bedroom1" id="bedroom1" required>
+                                    <option value="">Select bedrooms</option>
+                                    {% for i in range(1, 6) %}
+                                        <option value="{{ i }}">{{ i }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="sqft1">Square Footage (Sqft)</label>
+                                <input type="number" name="sqft1" id="sqft1" min="100" max="10000" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="year_built1">Year Built</label>
+                                <input type="number" name="year_built1" id="year_built1" min="1900" max="2025" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="distance1">Distance to City Center (km)</label>
+                                <input type="number" name="distance1" id="distance1" min="0" max="50" step="0.1" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="school1">Nearby School</label>
+                                <select name="school1" id="school1" required>
+                                    <option value="">Select option</option>
+                                    <option value="Y">Yes</option>
+                                    <option value="N">No</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="hospital1">Hospital Nearby</label>
+                                <select name="hospital1" id="hospital1" required>
+                                    <option value="">Select option</option>
+                                    <option value="Y">Yes</option>
+                                    <option value="N">No</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4>Property 2</h4>
+                            <div class="form-group">
+                                <label for="city2">City</label>
+                                <select name="city2" id="city2" required>
+                                    <option value="">Select a city</option>
+                                    {% for city in cities %}
+                                        <option value="{{ city }}">{{ city }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="bedroom2">Bedrooms</label>
+                                <select name="bedroom2" id="bedroom2" required>
+                                    <option value="">Select bedrooms</option>
+                                    {% for i in range(1, 6) %}
+                                        <option value="{{ i }}">{{ i }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="sqft2">Square Footage (Sqft)</label>
+                                <input type="number" name="sqft2" id="sqft2" min="100" max="10000" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="year_built2">Year Built</label>
+                                <input type="number" name="year_built2" id="year_built2" min="1900" max="2025" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="distance2">Distance to City Center (km)</label>
+                                <input type="number" name="distance2" id="distance2" min="0" max="50" step="0.1" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="school2">Nearby School</label>
+                                <select name="school2" id="school2" required>
+                                    <option value="">Select option</option>
+                                    <option value="Y">Yes</option>
+                                    <option value="N">No</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="hospital2">Hospital Nearby</label>
+                                <select name="hospital2" id="hospital2" required>
+                                    <option value="">Select option</option>
+                                    <option value="Y">Yes</option>
+                                    <option value="N">No</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Compare Properties</button>
+                </form>
+                <div id="compare-result"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>© 2025 Property Price Predictor. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+        const chartData = {{ chart_data | tojson }};
+        console.log('Chart Data:', chartData);
+
+        // Prediction Form AJAX
+        document.getElementById('predictForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('/predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById('prediction-result');
+                if (data.error_message) {
+                    resultDiv.innerHTML = `<p class="error">${data.error_message}</p>`;
+                } else if (data.prediction && data.lower_bound && data.upper_bound && data.city) {
+                    let html = `
+                        <div class="card">
+                            <h3>Prediction Result</h3>
+                            <p><strong>Predicted Price for Property in ${data.city}:</strong> ${data.prediction} Lakhs</p>
+                            <p><strong>Range:</strong> ${data.lower_bound} - ${data.upper_bound} Lakhs (±${data.mae} Lakhs)</p>
+                    `;
+                    if (data.upper_bound > 0 && data.lower_bound >= 0 && data.prediction >= 0) {
+                        html += `
+                            <div class="price-range">
+                                <div class="range-bar" style="left: ${data.left_percent}%; width: ${data.width_percent}%;"></div>
+                                <div class="range-marker" style="left: ${data.marker_percent}%;"></div>
+                            </div>
+                            <div class="range-labels">
+                                <span>${data.lower_bound} Lakhs</span>
+                                <span>${data.prediction} Lakhs</span>
+                                <span>${data.upper_bound} Lakhs</span>
+                            </div>
+                        `;
+                    } else {
+                        html += `<p class="error">Unable to display price range due to invalid data.</p>`;
+                    }
+                    if (data.avg_price_similar) {
+                        html += `<p><strong>Average price of similar properties:</strong> ${data.avg_price_similar} Lakhs</p>`;
+                    }
+                    if (data.city_avg_price) {
+                        html += `<p><strong>Average price in ${data.city}:</strong> ${data.city_avg_price} Lakhs</p>`;
+                    }
+                    html += `
+                        <h4>Key Factors Influencing This Prediction</h4>
+                        <ul class="feature-list">
+                    `;
+                    data.feature_importance.forEach(feature => {
+                        html += `<li>${feature.feature}: ${(feature.importance * 100).toFixed(2)}% influence</li>`;
+                    });
+                    html += `</ul>`;
+                    html += `
+                        <h4>Price Forecast (Next 12 Months)</h4>
+                        <ul class="feature-list">
+                    `;
+                    if (data.price_forecast && data.price_forecast.length > 0) {
+                        data.price_forecast.forEach(forecast => {
+                            html += `<li>${forecast.time}: ${forecast.price} Lakhs</li>`;
+                        });
+                    } else {
+                        html += `<p>Price forecast data is unavailable at this time.</p>`;
+                    }
+                    html += `</ul></div>`;
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<p class="error">Prediction data is missing. Please try again.</p>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('prediction-result').innerHTML = `<p class="error">Error predicting price. Please try again.</p>`;
+            });
+        });
+
+        // Compare Form AJAX
+        document.getElementById('compareForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            fetch('/compare', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                const resultDiv = document.getElementById('compare-result');
+                if (data.error) {
+                    resultDiv.innerHTML = `<p class="error">${data.error}</p>`;
+                } else if (data.property1 && data.property2) {
+                    let html = `<div class="grid-2">`;
+                    // Property 1
+                    html += `
+                        <div class="card">
+                            <h3>Property 1: ${data.property1.city}</h3>
+                            <p><strong>Predicted Price:</strong> ${data.property1.prediction} Lakhs</p>
+                            <p><strong>Range:</strong> ${data.property1.lower_bound} - ${data.property1.upper_bound} Lakhs (±${data.property1.mae} Lakhs)</p>
+                    `;
+                    if (data.property1.upper_bound > 0 && data.property1.lower_bound >= 0 && data.property1.prediction >= 0) {
+                        html += `
+                            <div class="price-range">
+                                <div class="range-bar" style="left: ${data.property1.left_percent}%; width: ${data.property1.width_percent}%;"></div>
+                                <div class="range-marker" style="left: ${data.property1.marker_percent}%;"></div>
+                            </div>
+                            <div class="range-labels">
+                                <span>${data.property1.lower_bound} Lakhs</span>
+                                <span>${data.property1.prediction} Lakhs</span>
+                                <span>${data.property1.upper_bound} Lakhs</span>
+                            </div>
+                        `;
+                    }
+                    if (data.property1.avg_price_similar) {
+                        html += `<p><strong>Average price of similar properties:</strong> ${data.property1.avg_price_similar} Lakhs</p>`;
+                    }
+                    if (data.property1.city_avg_price) {
+                        html += `<p><strong>Average price in ${data.property1.city}:</strong> ${data.property1.city_avg_price} Lakhs</p>`;
+                    }
+                    html += `
+                        <h4>Key Factors Influencing This Prediction</h4>
+                        <ul class="feature-list">
+                    `;
+                    data.property1.feature_importance.forEach(feature => {
+                        html += `<li>${feature.feature}: ${(feature.importance * 100).toFixed(2)}% influence</li>`;
+                    });
+                    html += `</ul></div>`;
+                    // Property 2
+                    html += `
+                        <div class="card">
+                            <h3>Property 2: ${data.property2.city}</h3>
+                            <p><strong>Predicted Price:</strong> ${data.property2.prediction} Lakhs</p>
+                            <p><strong>Range:</strong> ${data.property2.lower_bound} - ${data.property2.upper_bound} Lakhs (±${data.property2.mae} Lakhs)</p>
+                    `;
+                    if (data.property2.upper_bound > 0 && data.property2.lower_bound >= 0 && data.property2.prediction >= 0) {
+                        html += `
+                            <div class="price-range">
+                                <div class="range-bar" style="left: ${data.property2.left_percent}%; width: ${data.property2.width_percent}%;"></div>
+                                <div class="range-marker" style="left: ${data.property2.marker_percent}%;"></div>
+                            </div>
+                            <div class="range-labels">
+                                <span>${data.property2.lower_bound} Lakhs</span>
+                                <span>${data.property2.prediction} Lakhs</span>
+                                <span>${data.property2.upper_bound} Lakhs</span>
+                            </div>
+                        `;
+                    }
+                    if (data.property2.avg_price_similar) {
+                        html += `<p><strong>Average price of similar properties:</strong> ${data.property2.avg_price_similar} Lakhs</p>`;
+                    }
+                    if (data.property2.city_avg_price) {
+                        html += `<p><strong>Average price in ${data.property2.city}:</strong> ${data.property2.city_avg_price} Lakhs</p>`;
+                    }
+                    html += `
+                        <h4>Key Factors Influencing This Prediction</h4>
+                        <ul class="feature-list">
+                    `;
+                    data.property2.feature_importance.forEach(feature => {
+                        html += `<li>${feature.feature}: ${(feature.importance * 100).toFixed(2)}% influence</li>`;
+                    });
+                    html += `</ul></div>`;
+                    html += `</div>`;
+                    resultDiv.innerHTML = html;
+                } else {
+                    resultDiv.innerHTML = `<p class="error">Comparison data is missing. Please try again.</p>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('compare-result').innerHTML = `<p class="error">Error comparing properties. Please try again.</p>`;
+            });
+        });
+
+        // Chart Initialization
+        let priceDistChart = null;
+
+        // Average Price by City (Bar)
+        if (chartData.avg_price_city && chartData.avg_price_city.length > 0) {
+            const ctx = document.getElementById('avgPriceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.avg_price_city.map(item => item.city),
+                    datasets: [{
+                        label: 'Average Price (Lakhs)',
+                        data: chartData.avg_price_city.map(item => item.price),
+                        backgroundColor: '#1e40af',
+                        borderColor: '#1e3a8a',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Price (Lakhs)' } },
+                        x: { title: { display: true, text: 'City' } }
+                    }
+                }
+            });
+        }
+
+        // Price vs. Square Footage (Scatter)
+        if (chartData.price_vs_sqft && chartData.price_vs_sqft.length > 0) {
+            const ctx = document.getElementById('priceVsSqftChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Price vs. Sqft',
+                        data: chartData.price_vs_sqft.map(item => ({ x: item.sqft, y: item.price })),
+                        backgroundColor: '#1e40af'
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: 'Square Footage (Sqft)' } },
+                        y: { title: { display: true, text: 'Price (Lakhs)' } }
+                    }
+                }
+            });
+        }
+
+        // Price vs. Property Age (Scatter)
+        if (chartData.price_vs_age && chartData.price_vs_age.length > 0) {
+            const ctx = document.getElementById('priceVsAgeChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Price vs. Age',
+                        data: chartData.price_vs_age.map(item => ({ x: item.age, y: item.price })),
+                        backgroundColor: '#1e40af'
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: 'Property Age (Years)' } },
+                        y: { title: { display: true, text: 'Price (Lakhs)' } }
+                    }
+                }
+            });
+        }
+
+        // Price Distribution by City (Histogram)
+        function updatePriceDistChart(city) {
+            const data = chartData.price_dist && chartData.price_dist[city];
+            const ctx = document.getElementById('priceDistChart').getContext('2d');
+            if (priceDistChart) {
+                priceDistChart.destroy();
+            }
+            if (data) {
+                priceDistChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.bins.slice(0, -1),
+                        datasets: [{
+                            label: `Price Distribution in ${city}`,
+                            data: data.counts,
+                            backgroundColor: '#1e40af',
+                            borderColor: '#1e3a8a',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            x: { title: { display: true, text: 'Price (Lakhs)' } },
+                            y: { title: { display: true, text: 'Count' } }
+                        }
+                    }
+                });
+            }
+        }
+        if (chartData.price_dist && Object.keys(chartData.price_dist).length > 0) {
+            const citySelect = document.getElementById('citySelect');
+            updatePriceDistChart(citySelect.value);
+            citySelect.addEventListener('change', () => updatePriceDistChart(citySelect.value));
+        }
+
+        // Price vs. Sqft vs. Age (2D Scatter: Price vs. Sqft, colored by Age)
+        if (chartData.scatter_3d && chartData.scatter_3d.length > 0) {
+            const ctx = document.getElementById('scatter3DChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Price vs. Sqft (Age-colored)',
+                        data: chartData.scatter_3d.map(item => ({ x: item.sqft, y: item.price, r: Math.min(item.age / 5, 10) })),
+                        backgroundColor: chartData.scatter_3d.map(item => `hsl(${item.age * 5}, 70%, 50%)`)
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: 'Square Footage (Sqft)' } },
+                        y: { title: { display: true, text: 'Price (Lakhs)' } }
+                    }
+                }
+            });
+        }
+
+        // Price Heatmap by City (Bar)
+        if (chartData.heatmap && chartData.heatmap.length > 0) {
+            const ctx = document.getElementById('heatmapChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.heatmap.map(item => item.city),
+                    datasets: [{
+                        label: 'Average Price (Lakhs)',
+                        data: chartData.heatmap.map(item => item.price),
+                        backgroundColor: '#1e40af',
+                        borderColor: '#1e3a8a',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Price (Lakhs)' } },
+                        x: { title: { display: true, text: 'City' } }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
